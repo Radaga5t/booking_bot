@@ -1,31 +1,29 @@
 from flask import Flask
 from os import getenv
 from telegram import Bot
-from flask_sqlalchemy import SQLAlchemy
-from telegram.ext import Updater, CommandHandler
-
-
+from flask_sqlalchemy import SQLAlchemy 
 from dotenv import load_dotenv
 load_dotenv()
 
-
-bot = Bot(token=getenv('bot_token'))
-
-app = Flask(__name__)
-
+bot = Bot(token=getenv('TOKEN'))
 #----------------------------------------------------------------
-app.config['SQLALCHEMY_DATABASE_URI'] = getenv('database_token')
-db = SQLAlchemy(app)
+app = Flask(__name__)
+db = SQLAlchemy()
+app.config["SQLALCHEMY_DATABASE_URI"] = getenv('DATABASE_URL')
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+#----------------------------------------------------------------
 
-# Модели SQLAlchemy (Пример пользователя)
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    telegram_id = db.Column(db.String(64), unique=True, nullable=False)
-    name = db.Column(db.String(120), nullable=True)
+    username = db.Column(db.String, unique=True, nullable=False)
+    email = db.Column(db.String)
 
-    def repr(self):  # Исправлено здесь
-        return '<User {}>'.format(self.telegram_id)
 #----------------------------------------------------------------
+
+
+db.init_app(app)
+with app.app_context():
+    db.create_all()
 
 @app.route('/')
 def index():
