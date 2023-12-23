@@ -3,6 +3,9 @@ from os import getenv
 from telegram import Bot
 from flask_sqlalchemy import SQLAlchemy 
 from dotenv import load_dotenv
+from flask_migrate import Migrate
+
+
 load_dotenv()
 bot = Bot(token=getenv('TOKEN'))
 
@@ -10,6 +13,11 @@ bot = Bot(token=getenv('TOKEN'))
 
 app = Flask(__name__)
 db = SQLAlchemy()
+#----------------------------------------------------------------Migrations
+
+migrate = Migrate(app, db)
+
+#----------------------------------------------------------------
 app.config["SQLALCHEMY_DATABASE_URI"] = getenv('DATABASE_URL')
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
@@ -69,6 +77,8 @@ def handle_exception(e):
 @app.route('/')
 def index():
     return 'Hello, world'
+
+migrate = Migrate(app, db)
 
 if __name__ == '__main__':
     app.run()
