@@ -10,17 +10,13 @@ load_dotenv()
 bot = Bot(token=getenv('TOKEN'))
 
 #----------------------------------------------------------------SQLALchemy
-
 app = Flask(__name__)
 db = SQLAlchemy()
 #----------------------------------------------------------------Migrations
-
 migrate = Migrate(app, db)
-
 #----------------------------------------------------------------
 app.config["SQLALCHEMY_DATABASE_URI"] = getenv('DATABASE_URL')
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
 #----------------------------------------------------------------Models
 
 attendees = db.Table('attendees', db.Model.metadata,
@@ -77,8 +73,6 @@ def handle_exception(e):
 @app.route('/')
 def index():
     return 'Hello, world'
-
-migrate = Migrate(app, db)
 
 if __name__ == '__main__':
     app.run()
