@@ -15,14 +15,13 @@ migrate = Migrate(app, db)
 app.config["SQLALCHEMY_DATABASE_URI"] = getenv('DATABASE_URL')
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-# Initialize the app with the database
+#----------------------------------------------------------------
 db.init_app(app)
 
-# Create tables
 with app.app_context():
     db.create_all()
+#----------------------------------------------------------------
 
-# Error handling
 @app.errorhandler(404)
 def page_not_found(e):
     return jsonify(error=str(e)), 404
@@ -35,7 +34,8 @@ def server_error(e):
 def handle_exception(e):
     return jsonify(error="Непредвиденная ошибка"), 500
 
-# Routes
+#----------------------------------------------------------------
+
 @app.route('/')
 def index():
     return 'Hello, world'
