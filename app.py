@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 from flask_migrate import Migrate
 from models import db, User, Event, Chat, Attendee
 from server import *
-
 #---------------------------------------------------------------Variables
 load_dotenv()
 bot = Bot(token=getenv('TOKEN'))
@@ -33,7 +32,6 @@ def server_error(e):
 @app.errorhandler(Exception)
 def handle_exception(e):
     return jsonify(error="Непредвиденная ошибка"), 500
-
 #----------------------------------------------------------------
 if __name__ == '__main__':
     app.run()
