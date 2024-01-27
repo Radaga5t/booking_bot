@@ -1,12 +1,10 @@
-from flask import Flask, jsonify , request , abort
-from telegram import Bot
+from flask import Flask, jsonify , request
 from flask_migrate import Migrate
 from models import db, User, Event, Chat, Attendee
 from dotenv import load_dotenv
 from os import getenv
 #---------------------------------------------------------------Variables
 load_dotenv()
-#bot = Bot(token=getenv('TOKEN'))
 
 app = Flask(__name__)
 migrate = Migrate(app, db)
@@ -31,7 +29,8 @@ def server_error(e):
 def handle_exception(e):
     return jsonify(error="Непредвиденная ошибка"), 500
 #----------------------------------------------------------------Server settings
-@app.route('/users/', methods=['GET'])
+
+@app.route('/users/', methods=['GET']) #Доработать
 def get_users():
     users = User.query.all()
     user_list = [{'id': user.id, 'username': user.username, 'is_admin': user.is_admin} for user in users]
@@ -40,7 +39,18 @@ def get_users():
 # GET /events/ - список ивентов
 @app.route('/events/', methods=['GET'])
 def get_events():
-    events = Event.query.all() #фильтрация по юзеру
+    user_id = request.args.get('user_id')  # Получение user_id из параметров запроса
+
+    if user_id:
+        try:
+            user_id = int(user_id)  # Удостоверьтесь, что user_id можно привести к int
+        except ValueError:
+            return jsonify({'error': 'Неверный формат user_id'}), 400
+
+        events = Event.query.filter_by(user_id=user_id).all()  # Фильтрация ивентов по user_id
+    else:
+        events = Event.query.all()  # Получить все ивенты, если user_id не был предоставлен
+
     event_list = [{'id': event.id, 'title': event.title, 'description': event.description,
                    'start_time': event.start_time.isoformat(), 'end_time': event.end_time.isoformat()} for event in events]
     return jsonify({'events': event_list})
