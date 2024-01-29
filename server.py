@@ -1,6 +1,11 @@
 from flask import jsonify, request
 
 def register_routes(app, db, User, Event, Chat):
+    @app.after_request
+    def apply_content_type(response):
+        response.headers["Content-Type"] = "application/json"
+        return response
+    
     @app.route('/users/', methods=['GET'])
     def get_users():
         users = User.query.all()
@@ -67,9 +72,3 @@ def register_routes(app, db, User, Event, Chat):
         db.session.commit()
 
         return jsonify({'message': 'Мероприятие успешно обновлено'})
-
-    @app.route('/chats/', methods=['GET'])
-    def get_chats():
-        chats = Chat.query.all()
-        chat_list = [{'id': chat.id, 'chat_identifier': chat.chat_identifier} for chat in chats]
-        return jsonify({'chats': chat_list})
