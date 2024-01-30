@@ -33,16 +33,19 @@ def register_routes(app, db, User, Event, Chat):
     def create_event():
         data = request.get_json()
 
-        if 'title' not in data:
-            return jsonify({'error': 'Требуется название'}), 400
-
-        new_event = Event(title=data['title'], description=data.get('description'),
-                        start_time=data.get('start_time'), end_time=data.get('end_time'))
-        db.session.add(new_event)
-        db.session.commit()
-
-        return jsonify({'message': 'Мероприятие успешно создано', 'id': new_event.id})
-
+        new_event = Event(
+            title=data['title'],
+            description=data.get('description'),
+            start_time=data.get('start_time'),
+            end_time=data.get('end_time')
+        )
+        try:
+            db.session.add(new_event)
+            db.session.commit()
+            return jsonify({'message': 'Мероприятие успешно создано', 'id': new_event.id}), 201
+        except:
+            return jsonify({'error': 'Не удалось создать мероприятие. Проверьте данные и попробуйте снова.'}), 400
+        
     @app.route('/events/<int:event_id>/', methods=['GET'])
     def get_event(event_id):
         event = Event.query.get(event_id)
