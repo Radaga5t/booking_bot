@@ -1,4 +1,7 @@
 from flask import jsonify, request
+from sqlalchemy.exc import IntegrityError
+
+
 
 def register_routes(app, db, User, Event, Chat):
     @app.after_request
@@ -33,18 +36,18 @@ def register_routes(app, db, User, Event, Chat):
     def create_event():
         data = request.get_json()
 
-        new_event = Event(
-            title=data['title'],
-            description=data.get('description'),
-            start_time=data.get('start_time'),
-            end_time=data.get('end_time')
-        )
         try:
+            new_event = Event(data)
             db.session.add(new_event)
             db.session.commit()
             return jsonify({'message': 'Мероприятие успешно создано', 'id': new_event.id}), 201
-        except:
-            return jsonify({'error': 'Не удалось создать мероприятие. Проверьте данные и попробуйте снова.'}), 400
+        except IntegrityError as e:
+            db.session.rollback()  # Откат изменений, если возникла ошибка
+            return jsonify({'error': 'Отсутствует обязательное поле или нарушение уникальности данных.'}), 400
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': 'Произошла ошибка при создании мероприятия', 'details': str(e)}), 500
+
         
     @app.route('/events/<int:event_id>/', methods=['GET'])
     def get_event(event_id):
