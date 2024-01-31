@@ -17,13 +17,6 @@ class Event(db.Model):
     chat = db.relationship('Chat', back_populates='events')
     attendees = db.relationship('Attendee', back_populates='event', lazy='dynamic')
 
-    def __init__(self, data):
-        self.title = data.get('title')
-        self.description = data.get('description')
-        self.start_time = data.get('start_time')
-        self.end_time = data.get('end_time')
-        self.chat_id = data.get('chat_id')
-
 class Chat(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     chat_identifier = db.Column(db.String(120), unique=True, nullable=False)

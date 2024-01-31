@@ -1,20 +1,18 @@
 from flask import jsonify, request
-from sqlalchemy.exc import IntegrityError
+from models import db, User, Event
 
-
-
-def register_routes(app, db, User, Event, Chat):
+def register_routs(app):
     @app.after_request
     def apply_content_type(response):
         response.headers["Content-Type"] = "application/json"
         return response
-    
+#--------------------------------------------------------------------
     @app.route('/users/', methods=['GET'])
     def get_users():
         users = User.query.all()
         user_list = [{'id': user.id, 'username': user.username, 'is_admin': user.is_admin} for user in users]
         return jsonify({'users': user_list})
-
+#--------------------------------------------------------------------
     @app.route('/events/', methods=['GET'])
     def get_events():
         user_id = request.args.get('user_id') 
@@ -31,24 +29,18 @@ def register_routes(app, db, User, Event, Chat):
         event_list = [{'id': event.id, 'title': event.title, 'description': event.description,
                     'start_time': event.start_time.isoformat(), 'end_time': event.end_time.isoformat()} for event in events]
         return jsonify({'events': event_list})
- 
+#--------------------------------------------------------------------
     @app.route('/events/', methods=['POST'])
     def create_event():
         data = request.get_json()
-
-        try:
-            new_event = Event(data)
-            db.session.add(new_event)
-            db.session.commit()
-            return jsonify({'message': 'Мероприятие успешно создано', 'id': new_event.id}), 201
-        except IntegrityError as e:
-            db.session.rollback()  # Откат изменений, если возникла ошибка
-            return jsonify({'error': 'Отсутствует обязательное поле или нарушение уникальности данных.'}), 400
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'error': 'Произошла ошибка при создании мероприятия', 'details': str(e)}), 500
-
         
+        new_event = Event(title=data['title'], description=data.get('description'),
+                        start_time=data.get('start_time'), end_time=data.get('end_time'), chat_id=data.get('chat_id'))
+        db.session.add(new_event)
+        db.session.commit()
+
+        return jsonify({'message': 'Мероприятие успешно создано', 'id': new_event.id})
+#--------------------------------------------------------------------    
     @app.route('/events/<int:event_id>/', methods=['GET'])
     def get_event(event_id):
         event = Event.query.get(event_id)
@@ -59,7 +51,7 @@ def register_routes(app, db, User, Event, Chat):
         event_details = {'id': event.id, 'title': event.title, 'description': event.description,
                         'start_time': event.start_time.isoformat(), 'end_time': event.end_time.isoformat()}
         return jsonify(event_details)
-
+#--------------------------------------------------------------------
     @app.route('/events/<int:event_id>/', methods=['PATCH'])
     def update_event(event_id):
         event = Event.query.get(event_id)
@@ -76,5 +68,4 @@ def register_routes(app, db, User, Event, Chat):
                 setattr(event, field, data[field])
 
         db.session.commit()
-
         return jsonify({'message': 'Мероприятие успешно обновлено'})
