@@ -1,6 +1,11 @@
 from flask import jsonify, request
 from models import db, User, Event
 
+def get_users():
+    users = User.query.all()
+    user_list = [{'id': user.id, 'username': user.username, 'is_admin': user.is_admin} for user in users]
+    return jsonify({'users': user_list})
+
 def register_routs(app):
     @app.after_request
     def apply_content_type(response):
@@ -8,10 +13,8 @@ def register_routs(app):
         return response
 #--------------------------------------------------------------------
     @app.route('/users/', methods=['GET'])
-    def get_users():
-        users = User.query.all()
-        user_list = [{'id': user.id, 'username': user.username, 'is_admin': user.is_admin} for user in users]
-        return jsonify({'users': user_list})
+    def api_get_users():
+        return get_users()
 #--------------------------------------------------------------------
     @app.route('/events/', methods=['GET'])
     def get_events():
