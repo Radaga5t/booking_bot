@@ -1,6 +1,6 @@
 from flask import Flask, jsonify
 from flask_migrate import Migrate
-from models import db, User, Event, Chat
+from models import db
 from dotenv import load_dotenv
 from os import getenv
 from server import register_routs
