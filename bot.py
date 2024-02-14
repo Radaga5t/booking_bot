@@ -1,3 +1,4 @@
+
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
 from dotenv import load_dotenv
@@ -19,17 +20,15 @@ async def start(update: Update, context: CallbackContext) -> None:
             InlineKeyboardButton("Мероприятия", callback_data='events'),
         ],
         [
-            InlineKeyboardButton("Создать ивент", callback_data='create'),
-            InlineKeyboardButton("Детали конкретного ивента", callback_data='idevents'),
+            InlineKeyboardButton("Создать мероприятие", callback_data='create'),
+            InlineKeyboardButton("Детали конкретного мероприятия", callback_data='idevents'),
         ],
         [
-            InlineKeyboardButton("Обновить ивент", callback_data='update'),
-            InlineKeyboardButton("Какие чаты", callback_data='chats'),
+            InlineKeyboardButton("Обновить мероприятие", callback_data='update'),
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text('Выберите команду:', reply_markup=reply_markup)
-
 
 async def echo(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text(update.message.text)
@@ -45,3 +44,6 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
+
+
+
