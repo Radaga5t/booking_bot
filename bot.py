@@ -28,7 +28,7 @@ async def handle_chat_join(update: Update, context: CallbackContext) -> None:
 
 #test
 async def users(update: Update, context: CallbackContext) -> None:
-    response = requests.get('http://localhost:5000/users/')
+    response = requests.get('http://localhost:5000/users')
     response.raise_for_status()
     if response.status_code == 200:
         user_list = response.json().get('users', [])

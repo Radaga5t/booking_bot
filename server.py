@@ -1,7 +1,7 @@
-from flask import jsonify, request
+from flask import Flask, jsonify, request
 from models import db, User, Event , Attendee
 from datetime import datetime
-import logging
+
 
 def register_routs(app):
     @app.after_request
@@ -9,7 +9,7 @@ def register_routs(app):
         response.headers["Content-Type"] = "application/json"
         return response
 
-    @app.route('/users/', methods=['GET'])
+    @app.route('/users', methods=['GET'])
     def get_users():
         users = User.query.all()
         user_list = [{'id': user.id, 'username': user.username, 
@@ -76,56 +76,29 @@ def register_routs(app):
         return jsonify({'message': 'Event created successfully', 'event_id': new_event.id}), 201
     
     #------------------------------------------------
-
-
-    '''
-    @app.route('/event/<int:event_id>', methods=['PATCH'])
-    def update_event(event_id):
-        event = Event.query.filter_by(id=event_id).first()
-        if not event:
-            return jsonify({'error': 'Event not found'}), 404
-        
-        data = request.get_json()
-
-        title = data.get('title', event.title)
-        description = data.get('description', event.description)
-        start_time = data.get('start_time', event.start_time)
-        end_time = data.get('end_time', event.end_time)
-
-        event.title = title
-        event.description = description
-        event.start_time = start_time
-        event.end_time = end_time
-        
-        db.session.commit()
-        
-        return jsonify({'success': 'Event updated'}), 200
-
     @app.route('/events/<int:event_id>', methods=['PATCH'])
     def update_event(event_id):
-            event = Event.query.filter_by(id=event_id).first()
-            data = request.get_json()
+        event = Event.query.filter_by(id=event_id).first()
+        
+        if not event:
+            return jsonify({'message': 'Event not found'}), 404
 
-            if not event:
-                return jsonify({'message': 'Event not found'}), 404
+        data = request.json
+        title = data.get('title', event.title)
+        description = data.get('description', event.description)
+        start_time = data.get('start_time', event.start_time.isoformat())
+        end_time = data.get('end_time', event.end_time.isoformat())
 
-            title = data.get('title', event.title)
-            description = data.get('description', event.description)
-            start_time = data.get('start_time', event.start_time.isoformat())
-            end_time = data.get('end_time', event.end_time.isoformat())
+        # Обновляем данные, если они были предоставлены в запросе
+        event.title = title
+        event.description = description
+        
+        # Обработка времени в формате ISO 8601
+        if 'start_time' in data:
+            event.start_time = datetime.fromisoformat(start_time)
+        if 'end_time' in data:
+            event.end_time = datetime.fromisoformat(end_time)
 
-            event.title = title
-            event.description = description
+        db.session.commit()  # Сохраняем изменения в базе данных
 
-            if 'start_time' in data:
-                event.start_time = datetime.fromisoformat(start_time)
-            if 'end_time' in data:
-                event.end_time = datetime.fromisoformat(end_time)
-
-            db.session.commit()
-            return jsonify({'message': 'Event updated successfully'}), 200
-    '''
-
-
-
-
+        return jsonify({'message': 'Event updated successfully'}), 200
