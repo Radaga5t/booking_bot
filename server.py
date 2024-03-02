@@ -77,6 +77,27 @@ def register_routs(app):
     
     #------------------------------------------------
 
+    @app.route('/events/<int:event_id>', methods=['PATCH'])
+    def update_event(event_id):
+        event = Event.query.filter_by(id=event_id).first()
+
+        if not event:
+            return jsonify({'message': 'Event not found'}), 404
+
+        data = request.json
+        if 'title' in data:
+            event.title = data['title']
+        if 'description' in data:
+            event.description = data['description']
+        if 'start_time' in data:
+            event.start_time = datetime.fromisoformat(data['start_time'])
+        if 'end_time' in data:
+            event.end_time = datetime.fromisoformat(data['end_time'])
+
+        db.session.commit()
+
+        return jsonify({'message': 'Event updated successfully'}), 200
+
 
     '''
     @app.route('/event/<int:event_id>', methods=['PATCH'])
