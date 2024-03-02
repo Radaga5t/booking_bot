@@ -1,65 +1,98 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup 
+from typing import Union
 from telegram.ext import Application, CommandHandler, CallbackContext, CallbackQueryHandler, MessageHandler , filters
+from telegram.ext import ConversationHandler
 from dotenv import load_dotenv
 from os import getenv
 import requests
 from models import db, User, Chat
-
+from datetime import datetime
 load_dotenv()
 bot_token = getenv('TOKEN')
 
+TITLE, DESCRIPTION, START_TIME, END_TIME = range(4)
 
-async def handle_message(update: Update, context: CallbackContext) -> None:
+async def start_create_event(update: Update, context: CallbackContext) -> int:
+    await update.message.reply_text("Введите название события:")
+    return TITLE
+
+async def event_title(update: Update, context: CallbackContext) -> int:
+    title = update.message.text
+    context.user_data['title'] = title
+    await update.message.reply_text("Введите описание события:")
+    return DESCRIPTION
+
+async def event_description(update: Update, context: CallbackContext) -> int:
+    description = update.message.text
+    context.user_data['description'] = description
+    await update.message.reply_text("Введите дату и время начала события в формате YYYY-MM-DD HH:MM:SS:")
+    return START_TIME
+
+async def event_start_time(update: Update, context: CallbackContext) -> int:
+    start_time_str = update.message.text
+    context.user_data['start_time'] = start_time_str
+    await update.message.reply_text("Введите дату и время окончания события в формате YYYY-MM-DD HH:MM:SS:")
+    return END_TIME
+
+async def event_end_time(update: Update, context: CallbackContext) -> int:
+    end_time_str = update.message.text
+    context.user_data['end_time'] = end_time_str
+
     user_id = update.message.from_user.id
-    user = User.query.filter_by(user_id=user_id).first()
+
+    end_time_str = update.message.text
+    context.user_data['end_time'] = end_time_str
+
+    title = context.user_data.get('title')
+    description = context.user_data.get('description')
+    start_time_str = context.user_data.get('start_time')
+    end_time_str = context.user_data.get('end_time')
+
+    start_time = datetime.fromisoformat(start_time_str) if start_time_str else datetime.utcnow()
+    end_time = datetime.fromisoformat(end_time_str) if end_time_str else datetime.utcnow()
+
+
+
+    url = "http://localhost:5000/events"
+    data = {
+        "user_id": user_id,
+        "title": title,
+        "description": description,
+        "start_time": start_time.isoformat(),
+        "end_time": end_time.isoformat(),
+    }
     
-    if not user:
-        user = User(id=user_id)
-        db.session.add(user)
-        db.session.commit()
-
-
-async def handle_chat_join(update: Update, context: CallbackContext) -> None:
-    chat_id = update.message.chat_id
-    
-    new_chat = Chat(id=chat_id)
-    db.session.add(new_chat)
-    db.session.commit()
-
-#test
-async def users(update: Update, context: CallbackContext) -> None:
-    response = requests.get('http://localhost:5000/users')
-    response.raise_for_status()
-    if response.status_code == 200:
-        user_list = response.json().get('users', [])
-        for user_info in user_list:
-            user_id = user_info.get('id')
-            username = user_info.get('username')
-            is_admin = user_info.get('is_admin')
-            message_text = f'User ID: {user_id}, Имя: {username}, Admin: {is_admin}'
-            await update.message.reply_text(message_text)
+    response = requests.post(url, json=data)
+    if response.status_code == 201:
+            await update.message.reply_text("Событие успешно создано!")
     else:
-        await update.message.reply_text(f'Ошибка: {response.status_code}')
+        await update.message.reply_text(f"Ошибка при создании события. Код ошибки: {response.status_code}")
 
-#Доработать сортировку эвентов
+    context.user_data.clear()
+    return ConversationHandler.END
+
+
+
 async def events(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
-    response = requests.get(f'http://localhost:5000/events/?user_id={user_id}',)
+    response = requests.get(f'http://localhost:5000/events/{user_id}')
     response.raise_for_status()
     if response.status_code == 200:
-        event_list = response.json().get('events', [])
-        for event_info in event_list:
-            title = event_info.get('title')
-            description = event_info.get('description')
-            start_time = event_info.get('start_time')
-            end_time = event_info.get('end_time')
-            message_text = f'Название: {title}, Описание: {description}, Начало: {start_time}, Конец: {end_time}'
-            await update.message.reply_text(message_text)
+        event_list = response.json()
+        if event_list:
+            for event_info in event_list:
+                title = event_info.get('title')
+                description = event_info.get('description')
+                start_time = event_info.get('start_time')
+                end_time = event_info.get('end_time')
+                message_text = f' Название: {title}\nОписание: {description}\nНачало: {start_time}\nКонец: {end_time}'
+                await update.message.reply_text(message_text)
+        else:
+            await update.message.reply_text("У вас пока нет событий.")
     else:
         await update.message.reply_text(f'Ошибка: {response.status_code}')
 
 async def start(update: Update, context: CallbackContext) -> None:
-    user = update.effective_user
     keyboard = [
         [
             InlineKeyboardButton("Информация о пользователе", callback_data='user'),
@@ -76,28 +109,24 @@ async def start(update: Update, context: CallbackContext) -> None:
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text('Выберите команду:', reply_markup=reply_markup)
 
-async def button_callback(update: Update, context: CallbackContext) -> None:
-    query = update.callback_query
-    data = query.data
-    if data == 'user':
-        await users(update, context)
-    elif data == 'events':
-        await events(update, context)
-    # Добавьте обработку других кнопок
-
 def main() -> None:
     application = Application.builder().token(bot_token).build()
 
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler('create_event', start_create_event)],
+        states={
+            TITLE: [MessageHandler(filters.TEXT & ~filters.COMMAND, event_title)],
+            DESCRIPTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, event_description)],
+            START_TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, event_start_time)],
+            END_TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, event_end_time)],
+        },
+        fallbacks=[],
+    )
+
+
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("users", users))
     application.add_handler(CommandHandler("events", events))
-
-
-    # Добавление обработчика для кнопок
-    application.add_handler(CallbackQueryHandler(button_callback))
-    
-    #application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    #application.add_handler(MessageHandler(filters.StatusUpdate._NewChatMembers, handle_chat_join))
+    application.add_handler(conv_handler)
 
 
     application.run_polling()

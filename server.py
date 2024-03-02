@@ -1,20 +1,12 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, abort
 from models import db, User, Event , Attendee
 from datetime import datetime
-
 
 def register_routs(app):
     @app.after_request
     def apply_content_type(response):
         response.headers["Content-Type"] = "application/json"
         return response
-
-    @app.route('/users', methods=['GET'])
-    def get_users():
-        users = User.query.all()
-        user_list = [{'id': user.id, 'username': user.username, 
-                      'admin': user.admin} for user in users]
-        return jsonify({'users': user_list})
     
     @app.route('/events', methods=['GET'])
     def get_events():
@@ -75,7 +67,6 @@ def register_routs(app):
         db.session.commit()
         return jsonify({'message': 'Event created successfully', 'event_id': new_event.id}), 201
     
-    #------------------------------------------------
     @app.route('/events/<int:event_id>', methods=['PATCH'])
     def update_event(event_id):
         event = Event.query.filter_by(id=event_id).first()
@@ -89,16 +80,14 @@ def register_routs(app):
         start_time = data.get('start_time', event.start_time.isoformat())
         end_time = data.get('end_time', event.end_time.isoformat())
 
-        # Обновляем данные, если они были предоставлены в запросе
         event.title = title
         event.description = description
         
-        # Обработка времени в формате ISO 8601
         if 'start_time' in data:
             event.start_time = datetime.fromisoformat(start_time)
         if 'end_time' in data:
             event.end_time = datetime.fromisoformat(end_time)
 
-        db.session.commit()  # Сохраняем изменения в базе данных
+        db.session.commit()
 
         return jsonify({'message': 'Event updated successfully'}), 200
