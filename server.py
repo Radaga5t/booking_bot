@@ -91,3 +91,17 @@ def register_routs(app):
         db.session.commit()
 
         return jsonify({'message': 'Event updated successfully'}), 200
+
+    @app.route('/events/<int:event_id>', methods=['DELETE'])
+    def delete_event(event_id):
+        event = Event.query.get(event_id)
+
+        if not event:
+            return jsonify({'message': 'Event not found'}), 404
+
+        Attendee.query.filter_by(event_id=event.id).delete()
+
+        db.session.delete(event)
+        db.session.commit()
+
+        return jsonify({'message': 'Event deleted successfully'}), 200
