@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, abort
+from flask import Flask, jsonify, request
 from models import db, User, Event , Attendee
 from datetime import datetime
 
@@ -7,6 +7,12 @@ def register_routs(app):
     def apply_content_type(response):
         response.headers["Content-Type"] = "application/json"
         return response
+    
+    @app.route('/users/', methods=['GET'])
+    def get_users():
+        users = User.query.all()
+        user_list = [{'id': user.id, 'username': user.username, 'is_admin': user.is_admin} for user in users]
+        return jsonify({'users': user_list})
     
     @app.route('/events', methods=['GET'])
     def get_events():
@@ -49,7 +55,7 @@ def register_routs(app):
         data = request.get_json()
         
         try:
-            user_id = data['user_id'] # он должен где то получить user_id
+            user_id = data['user_id']
             title = data['title']
             description = data['description']
             start_time = datetime.fromisoformat(data['start_time']) if 'start_time' in data else datetime.utcnow()
@@ -70,23 +76,19 @@ def register_routs(app):
     @app.route('/events/<int:event_id>', methods=['PATCH'])
     def update_event(event_id):
         event = Event.query.filter_by(id=event_id).first()
-        
+
         if not event:
             return jsonify({'message': 'Event not found'}), 404
 
         data = request.json
-        title = data.get('title', event.title)
-        description = data.get('description', event.description)
-        start_time = data.get('start_time', event.start_time.isoformat())
-        end_time = data.get('end_time', event.end_time.isoformat())
-
-        event.title = title
-        event.description = description
-        
+        if 'title' in data:
+            event.title = data['title']
+        if 'description' in data:
+            event.description = data['description']
         if 'start_time' in data:
-            event.start_time = datetime.fromisoformat(start_time)
+            event.start_time = datetime.fromisoformat(data['start_time'])
         if 'end_time' in data:
-            event.end_time = datetime.fromisoformat(end_time)
+            event.end_time = datetime.fromisoformat(data['end_time'])
 
         db.session.commit()
 

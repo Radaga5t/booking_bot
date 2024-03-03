@@ -11,7 +11,6 @@ class User(db.Model):
     events = db.relationship('Event', secondary='attendee',
                              back_populates='users')
 
-
 class Event(db.Model):
     __tablename__ = 'event'
 
@@ -33,14 +32,12 @@ class Chat(db.Model):
     events = db.relationship('Event', secondary='event_chat',
                              back_populates='chats')
 
-#связь многие-ко-многим для User и Event
 class Attendee(db.Model):
     __tablename__ = 'attendee'
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     event_id = db.Column(db.Integer, db.ForeignKey('event.id'), primary_key=True)
 
-#связь многие ко многим для Event и Chat
 class EventChat(db.Model):
     __tablename__ = 'event_chat'
 
