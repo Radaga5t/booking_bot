@@ -1,11 +1,12 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup 
-from telegram import ReplyKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackContext, MessageHandler , filters
-from telegram.ext import ConversationHandler
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup , ReplyKeyboardMarkup
+from models import User, db
+from telegram.ext import Application, CommandHandler, CallbackContext, MessageHandler , filters , ConversationHandler
 from dotenv import load_dotenv
 from os import getenv
 import requests
 from datetime import datetime
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.exc import SQLAlchemyError
 load_dotenv()
 bot_token = getenv('TOKEN')
 
@@ -35,11 +36,7 @@ async def event_start_time(update: Update, context: CallbackContext) -> int:
 async def event_end_time(update: Update, context: CallbackContext) -> int:
     end_time_str = update.message.text
     context.user_data['end_time'] = end_time_str
-
     user_id = update.message.from_user.id
-
-    end_time_str = update.message.text
-    context.user_data['end_time'] = end_time_str
 
     title = context.user_data.get('title')
     description = context.user_data.get('description')
@@ -214,22 +211,28 @@ async def events(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text(f'Ошибка: {response.status_code}')
 
 async def start(update: Update, context: CallbackContext) -> None:
-    keyboard = [
-        [
-            InlineKeyboardButton("Информация о пользователе", callback_data='user'),
-            InlineKeyboardButton("Мероприятия", callback_data='events'),
-        ],
-        [
-            InlineKeyboardButton("Создать мероприятие", callback_data='create'),
-            InlineKeyboardButton("Детали конкретного мероприятия", callback_data='idevents'),
-        ],
-        [
-            InlineKeyboardButton("Обновить мероприятие", callback_data='update'),
-        ]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text('Выберите команду:', reply_markup=reply_markup)
+    user = update.message.from_user
+    user_id = user.id
+    username = user.username
 
+    try:
+        response = requests.post("http://localhost:5000/create_user", json={"user_id": user_id, "username": username})
+
+        if response.status_code == 201:
+            message = f"Добро пожаловать, {username}! Я ваш бот для управления мероприятиями. Выберите одну из следующих команд:"
+        elif response.status_code == 400:
+            message = f"Вы уже зарегистрированы, {username}. Выберите одну из следующих команд:"
+        else:
+            message = f"Ошибка при создании пользователя. Код ошибки: {response.status_code}"
+
+        await update.message.reply_text(message)
+    except requests.exceptions.RequestException as e:
+        print(f"Ошибка при выполнении команды start: {str(e)}")
+        await update.message.reply_text("Произошла ошибка при создании пользователя.")
+    except Exception as e:
+        print(f"Непредвиденная ошибка: {str(e)}")
+        await update.message.reply_text("Произошла непредвиденная ошибка.")
+        
 def main() -> None:
     application = Application.builder().token(bot_token).build()
 

@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import jsonify, request
 from models import db, User, Event , Attendee
 from datetime import datetime
 
@@ -13,6 +13,8 @@ def register_routs(app):
         users = User.query.all()
         user_list = [{'id': user.id, 'username': user.username, 'is_admin': user.is_admin} for user in users]
         return jsonify({'users': user_list})
+    
+
     
     @app.route('/events', methods=['GET'])
     def get_events():
@@ -107,3 +109,25 @@ def register_routs(app):
         db.session.commit()
 
         return jsonify({'message': 'Event deleted successfully'}), 200
+    
+    @app.route('/create_user', methods=['POST'])
+    def create_user():
+        try:
+            data = request.get_json()
+            user_id = data.get('user_id')
+            username = data.get('username')
+
+            existing_user = User.query.filter_by(id=user_id).first()
+            if existing_user:
+                return jsonify({"error": "Пользователь с таким ID уже существует"}), 400
+
+            new_user = User(id=user_id, username=username)
+            db.session.add(new_user)
+            db.session.commit()
+
+            return jsonify({"message": "Пользователь успешно создан"}), 201
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": f"Ошибка при работе с базой данных: {str(e)}"}), 500
+        finally:
+            db.session.close()
