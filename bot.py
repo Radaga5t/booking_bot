@@ -1,12 +1,9 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup , ReplyKeyboardMarkup
-from models import User, db
+from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackContext, MessageHandler , filters , ConversationHandler
 from dotenv import load_dotenv
 from os import getenv
 import requests
 from datetime import datetime
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.exc import SQLAlchemyError
 load_dotenv()
 bot_token = getenv('TOKEN')
 
@@ -221,7 +218,7 @@ async def start(update: Update, context: CallbackContext) -> None:
         if response.status_code == 201:
             message = f"Добро пожаловать, {username}! Я ваш бот для управления мероприятиями. Выберите одну из следующих команд:"
         elif response.status_code == 400:
-            message = f"Вы уже зарегистрированы, {username}. Выберите одну из следующих команд:"
+            message = f"Выберите одну из следующих команд:"
         else:
             message = f"Ошибка при создании пользователя. Код ошибки: {response.status_code}"
 
@@ -232,7 +229,13 @@ async def start(update: Update, context: CallbackContext) -> None:
     except Exception as e:
         print(f"Непредвиденная ошибка: {str(e)}")
         await update.message.reply_text("Произошла непредвиденная ошибка.")
-        
+    keyboard = [
+        ['/events', '/delete_event'],
+        ['/create_event', '/update_events']
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard)
+    await update.message.reply_text(reply_markup=reply_markup)
+
 def main() -> None:
     application = Application.builder().token(bot_token).build()
 
